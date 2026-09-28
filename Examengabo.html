@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GABO CONTABLE</title>
+<style>
+body{font-family:Arial,sans-serif;background:#eef6ff;margin:0;color:#17324d}
+.container{max-width:760px;margin:auto;padding:20px}
+.card{background:white;border-radius:18px;padding:24px;box-shadow:0 5px 20px #0002}
+h1{text-align:center;margin-top:0}
+input,button{width:100%;box-sizing:border-box;padding:14px;margin:8px 0;border-radius:10px;font-size:16px}
+input{border:1px solid #bbb} button{border:0;background:#1976d2;color:white;font-weight:bold;cursor:pointer}
+.option{text-align:left;background:#f2f6fa;color:#17324d;border:2px solid #d9e2ec}
+.option:hover{background:#e4f0ff}
+.hidden{display:none}.info{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:bold}
+#result{text-align:center}.ok{color:#16833b}.bad{color:#b42318}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card" id="start">
+<h1>📊 GABO CONTABLE</h1>
+<p style="text-align:center">Juego educativo de Contabilidad</p>
+<input id="name" placeholder="Escribe tu nombre completo">
+<button onclick="startGame()">INICIAR JUEGO</button>
+</div>
+
+<div class="card hidden" id="game">
+<div class="info"><span id="counter"></span><span id="timer"></span></div>
+<hr>
+<h2 id="question"></h2>
+<div id="options"></div>
+</div>
+
+<div class="card hidden" id="result">
+<h1>🎉 GAME FINISHED</h1>
+<div id="summary"></div>
+<button onclick="location.reload()">JUGAR DE NUEVO</button>
+</div>
+</div>
+
+<script>
+const bank=[
+["¿Qué representa el activo de una empresa?",["Las obligaciones","Los bienes y derechos","Los gastos","Los ingresos"],1],
+["¿Qué representa el pasivo?",["Los bienes de la empresa","Las ganancias","Las obligaciones y deudas","El capital"],2],
+["¿Qué representa el patrimonio?",["Activos menos pasivos","Solo el efectivo","Solo las deudas","Los gastos"],0],
+["¿Cuál es un ejemplo de activo?",["Proveedores","Capital social","Caja","Préstamo por pagar"],2],
+["¿Cuál es un ejemplo de pasivo?",["Mercaderías","Caja","Proveedores","Muebles"],2],
+["¿Cuál es un ingreso?",["Venta de mercaderías","Pago de alquiler","Compra de mercaderías","Pago de sueldos"],0],
+["¿Cuál es un gasto?",["Ventas","Caja","Alquiler pagado","Capital"],2],
+["¿Qué cuenta registra el dinero disponible en efectivo?",["Caja","Proveedores","Ventas","Capital"],0],
+["¿Qué documento respalda normalmente una compra o venta gravada?",["Factura","Memorándum","Acta","Contrato social"],0],
+["¿Qué es el costo?",["El valor relacionado con la producción o adquisición de un bien","Una deuda","Un ingreso","El patrimonio"],0],
+["¿Qué es el libro diario?",["Registra cronológicamente las operaciones","Registra solo inventarios","Registra solo ventas","Registra empleados"],0],
+["¿Qué es el libro mayor?",["Agrupa movimientos por cuenta","Registra únicamente facturas","Calcula salarios","Controla asistencia"],0],
+["¿Qué lado corresponde normalmente al debe?",["Izquierdo","Derecho","Superior","Inferior"],0],
+["¿Qué lado corresponde normalmente al haber?",["Izquierdo","Derecho","Superior","Inferior"],1],
+["¿Cuál es una cuenta de patrimonio?",["Capital","Caja","Proveedores","Gastos"],0],
+["¿Qué principio indica registrar las operaciones cuando ocurren?",["Devengado","Uniformidad","Prudencia","Entidad"],0],
+["¿Qué principio exige mantener métodos consistentes entre períodos?",["Materialidad","Uniformidad","Devengado","Realización"],1],
+["¿Qué es un arqueo de caja?",["Recuento físico del efectivo y equivalentes del cajero","Una venta","Una compra","Un préstamo"],0],
+["¿Cuál es el costo primo?",["Materiales directos + mano de obra directa","Gastos + ingresos","Activo + pasivo","Ventas + utilidad"],0],
+["¿Qué ocurre normalmente si se subvalúa el inventario final?",["Aumenta el costo de ventas y disminuye la utilidad","Disminuye el costo y aumenta la utilidad","No cambia nada","Aumenta el activo"],0]
+];
+
+let questions=[],idx=0,score=0,startTime,endTime,leaves=0,timerInterval,answered=false;
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function startGame(){
+ const n=document.getElementById("name").value.trim();
+ if(!n){alert("Escribe tu nombre completo.");return}
+ questions=shuffle(bank).slice(0,8); idx=0;score=0;leaves=0;startTime=new Date();
+ document.getElementById("start").classList.add("hidden");
+ document.getElementById("game").classList.remove("hidden");
+ showQuestion(); startTimer();
+}
+function startTimer(){
+ let end=Date.now()+40*60*1000;
+ timerInterval=setInterval(()=>{
+  let s=Math.max(0,Math.floor((end-Date.now())/1000));
+  let m=Math.floor(s/60), sec=String(s%60).padStart(2,"0");
+  document.getElementById("timer").textContent=`⏱ ${m}:${sec}`;
+  if(s<=0){clearInterval(timerInterval);finish();}
+ },500);
+}
+function showQuestion(){
+ answered=false;
+ const q=questions[idx], opts=shuffle(q[1].map((text,i)=>({text,i})));
+ document.getElementById("counter").textContent=`Pregunta ${idx+1} de ${questions.length}`;
+ document.getElementById("question").textContent=q[0];
+ const box=document.getElementById("options");box.innerHTML="";
+ opts.forEach(o=>{let b=document.createElement("button");b.className="option";b.textContent=o.text;b.onclick=()=>answer(o.i);box.appendChild(b)});
+}
+function answer(i){
+ if(answered)return;answered=true;
+ if(i===questions[idx][2])score++;
+ setTimeout(()=>{idx++;idx<questions.length?showQuestion():finish()},250);
+}
+function finish(){
+ clearInterval(timerInterval);endTime=new Date();
+ document.getElementById("game").classList.add("hidden");
+ document.getElementById("result").classList.remove("hidden");
+ const n=document.getElementById("name").value;
+ document.getElementById("summary").innerHTML=
+ `<p><b>Estudiante:</b> ${n}</p>
+ <p><b>Puntaje:</b> ${score} / ${questions.length}</p>
+ <p><b>Inicio:</b> ${startTime.toLocaleTimeString()}</p>
+ <p><b>Finalización:</b> ${endTime.toLocaleTimeString()}</p>
+ <p><b>Veces que salió de la pestaña:</b> ${leaves}</p>`;
+}
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden && !document.getElementById("game").classList.contains("hidden")){
+  leaves++;
+  alert("⚠️ Advertencia: saliste de la pestaña del juego.");
+ }
+});
+</script>
+</body>
+</html>
